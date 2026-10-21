@@ -16,6 +16,7 @@ import (
 // calls the Talkdesk API.
 type Metrics struct {
 	queryValue      *prometheus.GaugeVec
+	queryRows       *prometheus.GaugeVec
 	queryLastUpdate *prometheus.GaugeVec
 	streamConnected prometheus.Gauge
 	eventsTotal     *prometheus.CounterVec
@@ -34,6 +35,16 @@ func New(registry prometheus.Registerer, queryNames []string) *Metrics {
 			prometheus.GaugeOpts{
 				Name: "talkdesk_live_query_value",
 				Help: "Newest value of a Talkdesk Live query.",
+			},
+			[]string{"query"},
+		),
+
+		// For a list query (for example a list of live contacts) the row count is the
+		// useful number. We never export the rows, because they can contain personal data.
+		queryRows: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "talkdesk_live_query_rows",
+				Help: "Number of rows in the newest result of a Talkdesk Live query.",
 			},
 			[]string{"query"},
 		),
@@ -64,7 +75,7 @@ func New(registry prometheus.Registerer, queryNames []string) *Metrics {
 		eventErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "talkdesk_live_stream_event_errors_total",
-				Help: "Number of result events that did not contain one numeric value.",
+				Help: "Number of result events whose result was not a list of rows.",
 			},
 			[]string{"query"},
 		),
@@ -72,6 +83,7 @@ func New(registry prometheus.Registerer, queryNames []string) *Metrics {
 
 	registry.MustRegister(
 		exporterMetrics.queryValue,
+		exporterMetrics.queryRows,
 		exporterMetrics.queryLastUpdate,
 		exporterMetrics.streamConnected,
 		exporterMetrics.eventsTotal,
@@ -108,7 +120,7 @@ func (exporterMetrics *Metrics) HandleEvent(streamEvent *talkdesk.StreamEvent) {
 
 	exporterMetrics.eventsTotal.WithLabelValues(queryName).Inc()
 
-	value, err := streamEvent.Data.Value()
+	rowCount, err := streamEvent.Data.RowCount()
 	if err != nil {
 		exporterMetrics.eventErrors.WithLabelValues(queryName).Inc()
 
@@ -117,13 +129,21 @@ func (exporterMetrics *Metrics) HandleEvent(streamEvent *talkdesk.StreamEvent) {
 		return
 	}
 
+	exporterMetrics.queryRows.WithLabelValues(queryName).Set(float64(rowCount))
+
+	// A single-number query also gets a value. A list query has no single value,
+	// so it only has the row count. This is normal, not an error.
+	value, err := streamEvent.Data.Value()
+	if err == nil {
+		exporterMetrics.queryValue.WithLabelValues(queryName).Set(value)
+	}
+
 	// If the timestamp is missing or bad, use the time we received the event.
 	updatedAt, err := streamEvent.Data.Metadata.Time()
 	if err != nil {
 		updatedAt = time.Now()
 	}
 
-	exporterMetrics.queryValue.WithLabelValues(queryName).Set(value)
 	exporterMetrics.queryLastUpdate.WithLabelValues(queryName).Set(float64(updatedAt.UnixMilli()) / 1000)
 }
 

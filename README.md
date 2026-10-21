@@ -99,13 +99,18 @@ talkdesk_exporter -config.file talkdesk_exporter.yaml
 
 | Metric | Type | Description |
 |---|---|---|
-| `talkdesk_live_query_value{query}` | gauge | Newest value of the query. |
-| `talkdesk_live_query_last_update_timestamp_seconds{query}` | gauge | Unix time when Talkdesk calculated the value. |
+| `talkdesk_live_query_value{query}` | gauge | Newest value of a single-number query. |
+| `talkdesk_live_query_rows{query}` | gauge | Number of rows in the newest result. For a list query (for example `live_contacts_list`) this is the number of items. |
+| `talkdesk_live_query_last_update_timestamp_seconds{query}` | gauge | Unix time when Talkdesk calculated the result. |
 | `talkdesk_live_stream_connected` | gauge | 1 when connected to the Talkdesk stream, 0 when not. |
 | `talkdesk_live_stream_events_total{query}` | counter | Result events received. |
-| `talkdesk_live_stream_event_errors_total{query}` | counter | Result events without one numeric value. |
+| `talkdesk_live_stream_event_errors_total{query}` | counter | Result events the exporter could not read. |
 
 The `query` label is the query name from your config.
+
+A single-number query (for example `total_arrived_contacts`) has a value and a row count of 1.
+A list query has only a row count. The exporter never exports the rows themselves,
+because they can contain personal data such as phone numbers.
 
 ## Use with Prometheus
 
@@ -162,9 +167,9 @@ To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Limits
 
-- Only queries that return one number are supported. A query that returns a list
-  (for example a list of contacts) increments `talkdesk_live_stream_event_errors_total`
-  and has no value.
+- A list query gives only its row count, not the data in the rows.
+- Grouped queries (one number for each ring group, for example) are not split by group yet.
+  They show as a row count. If you use one, please open an issue with an example result.
 - A subscription holds no more than 16 queries (a Talkdesk limit). For more queries,
   run a second exporter.
 - If Talkdesk cannot be reached at start-up, the exporter stops with an error.

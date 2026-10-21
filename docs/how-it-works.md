@@ -42,6 +42,9 @@ scrapes fast, and the Talkdesk API rate limits do not depend on the scrape inter
   when it arrives. A custom collector is for exporters that call an API at scrape time.
 - **Own registry.** `prometheus.NewRegistry()` shows only the metrics we register.
   The default global registry can contain metrics from other packages.
+- **List queries give a row count, not rows.** A list of contacts can contain phone numbers
+  and names. Putting these in labels would store personal data in Prometheus and make a new
+  series for each contact. The number of rows (for example "contacts live now") is safe and useful.
 - **Only configured query names become series.** Unexpected data from the stream cannot
   add new label values, so the number of series stays fixed.
 - **New subscription for each connection.** The stream URL has a token in it, and the token

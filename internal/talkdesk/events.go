@@ -107,8 +107,21 @@ func (streamReader *StreamReader) Next() (*StreamEvent, error) {
 
 }
 
-// Value returns the number in the result. The exporter supports queries that return
-// one row with one "_value", for example [{"_value":12}].
+// RowCount returns the number of rows in the result. For a list query, for example
+// a list of live contacts, this is the number of items in the list.
+func (eventData StreamEventData) RowCount() (int, error) {
+	var rows []json.RawMessage
+
+	err := json.Unmarshal(eventData.Result, &rows)
+	if err != nil {
+		return 0, fmt.Errorf("result is not a list of rows: %w", err)
+	}
+
+	return len(rows), nil
+}
+
+// Value returns the number in the result. It works only for a result with
+// one row and one "_value", for example [{"_value":12}].
 func (eventData StreamEventData) Value() (float64, error) {
 	var rows []resultRow
 

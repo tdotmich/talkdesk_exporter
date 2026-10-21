@@ -94,3 +94,29 @@ func TestStreamEventDataValueErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestStreamEventDataRowCount(t *testing.T) {
+	testCases := map[string]int{
+		`[]`:             0,
+		`[{"_value":7}]`: 1,
+		`[{"contact_id":"c1"},{"contact_id":"c2"}]`: 2,
+	}
+
+	for result, expectedRows := range testCases {
+		eventData := StreamEventData{Result: []byte(result)}
+
+		rows, err := eventData.RowCount()
+		if err != nil {
+			t.Errorf("RowCount(%s) returned an unexpected error: %v", result, err)
+		}
+
+		if rows != expectedRows {
+			t.Errorf("RowCount(%s): expected %d rows, got %d", result, expectedRows, rows)
+		}
+	}
+
+	_, err := StreamEventData{Result: []byte(`"text"`)}.RowCount()
+	if err == nil {
+		t.Error("expected an error for a result that is not a list")
+	}
+}
