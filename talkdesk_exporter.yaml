@@ -1,0 +1,8 @@
+talkdesk:
+  account_name: my-account
+  api_base_url: https://api.talkdeskapp.co.uk
+  # Optional. The default is https://<account_name>.talkdeskid.com/oauth/token.
+  # Set this if your Talkdesk region uses a different token address.
+  # token_url: https://my-account.talkdeskid.com/oauth/token
+  live_queries:
+    - total_arrived_contacts

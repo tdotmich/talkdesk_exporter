@@ -1,0 +1,22 @@
+# Runs the exporter and a Prometheus server.
+# 1. Put your account and queries in ../talkdesk_exporter.yaml
+# 2. Put TALKDESK_CLIENT_ID and TALKDESK_CLIENT_SECRET in a .env file next to this file
+# 3. docker compose up
+services:
+  talkdesk_exporter:
+    image: ghcr.io/tdotmich/talkdesk_exporter:latest
+    env_file: .env
+    volumes:
+      - ../talkdesk_exporter.yaml:/etc/talkdesk_exporter/talkdesk_exporter.yaml:ro
+    ports:
+      - "127.0.0.1:10060:10060"
+    read_only: true
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus-compose.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"

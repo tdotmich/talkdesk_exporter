@@ -1,0 +1,22 @@
+groups:
+  - name: talkdesk_exporter
+    rules:
+      - alert: TalkdeskExporterDown
+        expr: up{job="talkdesk"} == 0
+        for: 5m
+        annotations:
+          summary: Prometheus cannot scrape the Talkdesk exporter.
+
+      - alert: TalkdeskStreamDisconnected
+        expr: talkdesk_live_stream_connected == 0
+        for: 5m
+        annotations:
+          summary: The exporter is not connected to the Talkdesk Live stream.
+
+      # Talkdesk sends each query at least every 60 seconds.
+      # No update for 5 minutes means the value is stale.
+      - alert: TalkdeskQueryStale
+        expr: time() - talkdesk_live_query_last_update_timestamp_seconds > 300
+        for: 2m
+        annotations:
+          summary: "Talkdesk Live query {{ $labels.query }} has not updated for 5 minutes."

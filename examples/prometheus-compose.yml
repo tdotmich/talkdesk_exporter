@@ -1,0 +1,9 @@
+# Add this job to your Prometheus config.
+scrape_configs:
+  - job_name: talkdesk
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["talkdesk_exporter:10060"]
+
+rule_files:
+  - alerts.yml
